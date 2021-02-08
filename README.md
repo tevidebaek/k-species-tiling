@@ -4,11 +4,11 @@ This finds allowed colorings of triangular tiling patterns for k different color
 ## How to run the code
 
 You will need to specify the following things at the beginning of the `int_matrix.py` file:
--`k` : how many species to calculate for
--`save_src` : the directory where you want to save any outputs
--`save_csv` : how you want to format the filename of output CSV file that has matrix elements
--`save_to_csv` : boolean you set if you want to save CSV output
--`save_img` : boolean you set if you want to save a PNG image of matrix output
+- `k` : how many species to calculate for
+- `save_src` : the directory where you want to save any outputs
+- `save_csv` : how you want to format the filename of output CSV file that has matrix elements
+- `save_to_csv` : boolean you set if you want to save CSV output
+- `save_img` : boolean you set if you want to save a PNG image of matrix output
 
 ## Restrictions on tilings
 
