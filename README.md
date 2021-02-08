@@ -9,7 +9,7 @@ You will need to specify the following things at the beginning of the `int_matri
 - `save_csv` : how you want to format the filename of output CSV file that has matrix elements
 - `save_to_csv` : boolean you set if you want to save CSV output
 - `save_img` : boolean you set if you want to save a PNG image of matrix output
-
+- `element_run` : lets you toggle between index data type and array data type for the generation part of the code
 ## Restrictions on tilings
 
 We want to find all allowed interaction matrices that follow restricitions that come about from requiring that the tiling can be used to generate self-assembling tubes. The physical restrictions are that:
