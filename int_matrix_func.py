@@ -3,7 +3,7 @@ import itertools
 import matplotlib.pyplot as plt
 import time
 import os, psutil
-
+from multiprocessing import Pool
 
 #want to make drawings of the interaction matricies
 def draw_int_matrix(M, img_dir='./', num_m=0, save=False, show=False):
@@ -162,7 +162,7 @@ def find_all_loops(M):
     for i in range(len(element_info)):
         loop = find_loop(element_info,i)
         loops.append(np.sort(loop))
-        if len(loop) not in [1,2,3,6]: return False, False
+        if len(loop) not in [3,6]: return False, False
 
     unique_loops = []
     #go over the loops and keep only the unique ones
@@ -254,7 +254,9 @@ def remove_degenerate_matrices(interaction_matricies,k):
     #for M in degen_list:
     while len(degen_list)>0:
         M = degen_list[0]
-    
+        
+        #M = np.unpackbits(M, axis=1, count=3*k)
+
         degenerate_M = []
         
         def add_degen_M(M_add):
@@ -323,13 +325,15 @@ def remove_degenerate_matrices(interaction_matricies,k):
     print('non-degen length', len(non_degen_list))
     
     return non_degen_list
-        
+
+
 def generate_all_matrices(k):
     #start with a list of all the matrices we will eventually make
     interaction_matricies = []    
 
-    M = np.zeros((3*k, 3*k))  #initialize our first matrix
-    interaction_matricies.append(M)
+    M = np.zeros((3*k, 3*k)).astype(int)  #initialize our first matrix
+
+    interaction_matricies.append(np.packbits(M, axis=1))
     
     ### end initilization of variables ###
         
@@ -348,8 +352,20 @@ def generate_all_matrices(k):
         
         new_int_matricies = [] 
         
+        cnt = 0
+        len_list = len(interaction_matricies)
+        print(len_list)
+
         #look at each existing matrix to see what new matricies we could make from these
         for M in interaction_matricies:
+
+            cnt+=1
+            if cnt%100==0: print(cnt, '/', len_list, end='\r')
+            #if int(100*float((cnt/len_list)))%5==0: 
+            #   if int(100*(cnt-1)/len_list)%5!=0:
+            #        print('=', end='\r', flush=True)
+
+            M = np.unpackbits(M, axis=1, count=3*k)
             
             #we want to see which columns in the column set of M do not have elements already.
             col_to_fill = []
@@ -359,7 +375,7 @@ def generate_all_matrices(k):
                    
             #if all columns of set are full then readd the matrix and go to next one, no additional elements to add
             if len(col_to_fill)==0:
-                new_int_matricies.append(np.copy(M))
+                new_int_matricies.append(np.packbits(np.copy(M), axis=1))
                 continue
                 
             #if there are elements to add, do that next
@@ -368,6 +384,49 @@ def generate_all_matrices(k):
             #for each column we have k choices, and in the set these choices do not interfer with each other
             combs = list(itertools.product(range(k), repeat=len(col_to_fill)))  #get all combinations of [0,...,k-1]
             #print(combs)
+            
+            '''
+            ######### attempt to pool these to make generating things faster ########
+            def pool_combinations(i):
+                M_p = np.copy(M)
+                
+                #print(M_p)
+                
+                #fill as many rows as the length of col_to_fill
+                row_to_fill = []
+                
+                for j in range(len(col_to_fill)):
+                    #need to choose the correct row to fill. Recall that we will only be filling the diagonal elements of the row sets
+                    row = col_to_fill[j]%3 + 3*i[j]
+                    
+                    #check if row is already filled
+                    if any(M_p[row])>0: continue
+                    else: row_to_fill.append(row)
+                
+                #if no rows to fill from this combination, skip it
+                if len(row_to_fill)!=len(col_to_fill): return []
+                
+                #print('row to fill', row_to_fill)
+                
+                for col, row in zip(col_to_fill, row_to_fill):
+                    M_p[col, row]=1
+                    M_p[row, col]=1
+                    
+                if np.sum(M_p[col_indx, col_indx])<3:
+                    if check_bad_lines(M_p,k):
+                        return np.packbits(M_p, axis=1)
+                        
+                else: return []
+            ########## end of pool function ############
+
+            with Pool() as pool:
+                new_mats = pool.map(pool_combinations, [i for i in combs])
+
+            for mat in new_mats:
+                if len(mat)>0:
+                    new_int_matricies.append(mat)
+            '''
+
             
             #for each combination we need to create a new matrix
             for i in combs:
@@ -397,9 +456,9 @@ def generate_all_matrices(k):
                     
                 if np.sum(M_p[col_indx, col_indx])<3:
                     if check_bad_lines(M_p,k):
-                        new_int_matricies.append(M_p)
+                        new_int_matricies.append(np.packbits(M_p, axis=1))
                         
-                
+              
     
                 #for new_m in new_int_matrices:
                 #    print(new_m)
@@ -408,6 +467,7 @@ def generate_all_matrices(k):
         interaction_matricies = new_int_matricies.copy()
         
         process = psutil.Process(os.getpid())
+        print('.')
         print('memory used (MB)', process.memory_info().rss/1000000.)
         
         
@@ -426,6 +486,8 @@ def remove_bad_line_interactions(M_list, k):
     
     #loop through all (row_set,col_set) and make list of which ones are two elements and which one is missing on the diagonal
     for M in M_list:
+
+        M = np.unpackbits(M, axis=1, count=3*k)
 
         if check_bad_lines:
             valid_M.append(M)

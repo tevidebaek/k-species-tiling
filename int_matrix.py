@@ -18,7 +18,7 @@ import gc
 start = time.time()
 
 #how many species do we want to have
-k=6
+k=4
 save_src = './k'+str(k)+'-valid-tiling/'
 save_csv = 'k'+str(k)+'-intmatrices.csv'
 save_to_csv = False
@@ -48,6 +48,7 @@ if element_run:
         
 else:
     for M in interaction_matricies:
+        M = np.unpackbits(M, axis=1, count=3*k)
         if imf.valid_coloring(M,k): valid_loops.append(M)
 
 print('removed bad loops', len(valid_loops))
