@@ -284,8 +284,10 @@ def remove_degenerate_matrices(interaction_matricies,k):
         
         for dM in degenerate_M:
             for i in range(len(degen_list)):
-                if check_same(dM, degen_list[i]): idx_to_remove.append(i)      
-        
+                if check_same(dM, degen_list[i]):
+                    idx_to_remove.append(i)      
+                    continue
+
         for i in sorted(idx_to_remove, key=int, reverse=True):
             del(degen_copy[i])
         
@@ -348,13 +350,42 @@ Generate the list of combinations that we can do at this level.
         Else: generate combs for next level and check the elements
 '''
 
+def get_color_permutations_less(M, k):
+    #this breaks down the permutations into sets of four swaps since we know that we will never fill some rows
+    M_ps = [M]
+
+    #how many iterations of swaps do we need to do
+    num_full_swap = np.floor(k/4)
+
+    for set_num in range(num_full_swap):
+        
+        for cnt in range(3):
+            new_Mps = []
+            
+            for M_p in M_ps:
+                for i in range(cnt,4):
+                    #mps = M_ps.copy()
+                    mp = swap_colors(M_p, cnt+set_num, i+set_num)
+                    new_Mps.append(mp)
+                    
+            M_ps = new_Mps.copy()
+        
+    return M_ps
+
+
 def check_degenerate(M, degen_list):
     
+        ele_to_pop = []
         for i in range(len(degen_list)):
             if check_same(M, degen_list[i]): 
+                ele_to_pop.append(i)
+                #degen_list.pop(i)
+                #return False
+        if len(ele_to_pop)>0:
+            for i in ele_to_pop[::-1]:
                 degen_list.pop(i)
-                return False
-        
+            return False
+
         return True
 
 def add_degenerates(M,k, degen_list):
@@ -364,9 +395,9 @@ def add_degenerates(M,k, degen_list):
 
     def add_degen_M(M_add):
         if len(temp_list)!=0:
-            for dM in temp_list:
-                if check_same(M_add,dM): 
-                    return None
+            #for dM in temp_list:
+            #    if check_same(M_add,dM): 
+            #        return None
             temp_list.append(M_add)
         else: 
             temp_list.append(M_add)
@@ -384,6 +415,8 @@ def add_degenerates(M,k, degen_list):
     
     M_perms = get_color_permutations(M,k)
     
+    cnt=0
+
     for M_p in M_perms:
         M_shift_1 = shift_index(M_p,1)
         M_shift_2 = shift_index(M_p,2)
@@ -396,10 +429,14 @@ def add_degenerates(M,k, degen_list):
         add_degen_M(M_shift_1)
         add_degen_M(M_shift_2)
 
+
+        if cnt%100==0: print('degen', cnt, end='\r')
+        cnt+=1
+
     for t in temp_list: degen_list.append(t)
     #degen_list = list(np.unique(degen_list))
 
-def recursive_branch(k, col_set_indx, M, valid_list, degenerate_list, node_struc, save_params):
+def recursive_branch(k, col_set_indx,lowest_row_set, M, valid_list, degenerate_list, node_struc, save_params):
     '''
     This takes a generated matrix and sees if it is done or needs to look at the next level of the  tree
 
@@ -419,15 +456,15 @@ def recursive_branch(k, col_set_indx, M, valid_list, degenerate_list, node_struc
         #check the quality of the matrix
         if valid_coloring(M,k):
             #we also need to see if this Matrix is already degenerate with another one already added
-            if check_degenerate(M, degenerate_list):
-                i=len(valid_list)
-                valid_list.append(M)
-                add_degenerates(M, k, degenerate_list)
-                save_src, save_csv, save_to_csv, save_img = save_params
-                if save_img: draw_int_matrix(M, save_src, i,save=save_img, show=True)
-                if save_src: 
-                    fname = save_src+'k'+str(k)+'-intmatrix-'+str(i)+'.csv'
-                    np.savetxt(fname, M.astype(int),delimiter=',')
+            #if check_degenerate(M, degenerate_list):
+            i=len(valid_list)
+            valid_list.append(M)
+            #add_degenerates(M, k, degenerate_list)
+            #save_src, save_csv, save_to_csv, save_to_img = save_params
+            #if save_to_img: draw_int_matrix(M, save_src, i,save=save_img, show=True)
+            #if save_to_csv: 
+            #    fname = save_src+'k'+str(k)+'-intmatrix-'+str(i)+'.csv'
+            #    np.savetxt(fname, M.astype(int),delimiter=',')
 
     else:
         #available columns in set
@@ -441,18 +478,24 @@ def recursive_branch(k, col_set_indx, M, valid_list, degenerate_list, node_struc
                 
         #if all columns of set are full then readd the matrix and go to next one, no additional elements to add
         if len(col_to_fill)==0:
-            recursive_branch(k,col_set_indx+1,M, valid_list, degenerate_list, node_struc, save_params)
+            recursive_branch(k,col_set_indx+1, lowest_row_set,M, valid_list, degenerate_list, node_struc, save_params)
             return
             
         #if there are elements to add, do that next
+        #for the first column we will never need to look past the fourth row since we can always
+        #relabel things. This will also have consequences for the permutations we do
+        if col_set_indx==0: combs = list(itertools.product(range(min(k,4)), repeat=len(col_to_fill)))    
         #for each column we have k choices, and in the set these choices do not interfer with each other
-        combs = list(itertools.product(range(k), repeat=len(col_to_fill)))  #get all combinations of [0,...,k-1]
+        #how many rows down do we need to fill? If nothing in the column, then 4 below the lowest row set filled
+        #if there are elements in the col set, then fill len(col_to_fill)+1 below lowest row set
+        else: combs = list(itertools.product(range(col_set_indx,min(k,len(col_to_fill)+1+lowest_row_set)), repeat=len(col_to_fill)))  #get all combinations of [0,...,k-1]
         #print(combs)
     
         cnt = 0
 
         #for each combination we need to create a new matrix
         for i in combs:
+            lowest_row_set = max(i)
 
             cnt+=1  
             node_struc[col_set_indx] = cnt/len(combs)
@@ -485,7 +528,7 @@ def recursive_branch(k, col_set_indx, M, valid_list, degenerate_list, node_struc
             if np.sum(new_M[col_indx, col_indx])<3:
                 if check_bad_lines(new_M,k):
                     #at this point the generated matrix passes our checks, go to the next branch
-                    recursive_branch(k,col_set_indx+1,new_M, valid_list, degenerate_list, node_struc, save_params)
+                    recursive_branch(k,col_set_indx+1, lowest_row_set,new_M, valid_list, degenerate_list, node_struc, save_params)
 
 def generate_all_recursion(k, save_params):
 
@@ -499,10 +542,11 @@ def generate_all_recursion(k, save_params):
     #need a counter for the column set that we are looking at. A column set are the group of three columns that correspond to
     #the interactions of a single particle species
     col_set_indx = 0   
+    lowest_row_set = -1
 
     node_struc = np.zeros(k)
 
     #active the recursive look up
-    recursive_branch(k,col_set_indx, M, interaction_matricies, degenerate_list, node_struc, save_params)
+    recursive_branch(k,col_set_indx, lowest_row_set, M, interaction_matricies, degenerate_list, node_struc, save_params)
 
     return interaction_matricies

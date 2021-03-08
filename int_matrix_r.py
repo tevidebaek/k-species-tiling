@@ -18,17 +18,20 @@ import gc
 start = time.time()
 
 #how many species do we want to have
-k=8
+k=6
 save_src = './k'+str(k)+'-valid-tiling/'
 save_csv = 'k'+str(k)+'-intmatrices.csv'
-save_to_csv = True
-save_img = True
-save_params = [save_src, save_csv, save_to_csv, save_img]
+save_to_csv = False
+save_to_img = False
+save_params = [save_src, save_csv, save_to_csv, save_to_img]
 
 interaction_matrices = imf.generate_all_recursion(k,save_params)
 
 print('generated matrices:', len(interaction_matrices))
 
+#now need to see which of the elements in this list are degenerate
+final_list = imf.remove_degenerate_matrices(interaction_matrices, k)
+print('final list length:', len(final_list))
 '''
 #final_list = interaction_matrices
 
