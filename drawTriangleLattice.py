@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.collections import PatchCollection
-import int_matrix_func as imf
+import int_matrix_r_func as imf
 import os
 
 #first we need to impor the interaction matrix file
@@ -114,7 +114,7 @@ class Triangle:
     #need a way to check if an added triangle has any other neighbors
 
 #first thing to do is load in the interaction matrix and get a list of elements from it
-src = './k5-valid-tiling/'
+src = './k9-valid-tiling/'
 
 intMat_files = []
 
@@ -184,7 +184,7 @@ for filename in intMat_files:
     #print([c.color for c in triangle_list])
 
     #colors = ['r', 'b', 'g', 'orange']
-    colors = ['#ff6666', '#00cc99', '#4d79ff', '#d279d2', '#ffad33', '#70dbdb', '#ff99bb', '#009999']
+    colors = ['#ff6666', '#4d79ff', '#00cc99', '#d279d2', '#ffad33', '#70dbdb', '#ff99bb', '#009999', 'k']
 
     fig, axs = plt.subplots(figsize=(4,4))
     for t in triangle_list:

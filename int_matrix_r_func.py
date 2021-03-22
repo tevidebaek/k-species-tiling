@@ -484,7 +484,10 @@ def recursive_branch(k, col_set_indx,lowest_row_set, M, valid_list, degenerate_l
         #if there are elements to add, do that next
         #for the first column we will never need to look past the fourth row since we can always
         #relabel things. This will also have consequences for the permutations we do
-        if col_set_indx==0: combs = list(itertools.product(range(min(k,4)), repeat=len(col_to_fill)))    
+        
+        #if col_set_indx==0: combs = list(itertools.product(range(min(k,4)), repeat=len(col_to_fill)))    
+        if col_set_indx==0: combs = list(itertools.combinations_with_replacement(range(min(k,4)), r=len(col_to_fill)))
+        
         #for each column we have k choices, and in the set these choices do not interfer with each other
         #how many rows down do we need to fill? If nothing in the column, then 4 below the lowest row set filled
         #if there are elements in the col set, then fill len(col_to_fill)+1 below lowest row set
